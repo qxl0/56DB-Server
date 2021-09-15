@@ -6,6 +6,10 @@ import { buildSchema } from 'type-graphql';
 import { HelloResolver } from './resolvers/hello';
 import { ItemResolver } from './resolvers/item';
 import { Item } from "./entity/Item";
+import { Sales } from "./entity/Sales";
+import cors from 'cors';
+import { SalesResolver } from "./resolvers/sales";
+
 
 const main=async ()=>{
   const conn = await createConnection({ 
@@ -18,19 +22,23 @@ const main=async ()=>{
       synchronize: false,
       logging: true,
       entities: [
-        Item
+        Item,
+        Sales
       ],
       options: { "encrypt": false }
     })
   console.log("conn is open", conn.isConnected);
   const app = express();
+  
+  app.use(cors());
 
   const apolloServer = new ApolloServer({
     schema: await buildSchema({
       // resolvers: [__dirname + '/src/resolvers/*.ts'],
       resolvers: [ 
         HelloResolver, 
-        ItemResolver
+        ItemResolver,
+        SalesResolver
       ],  
       validate: false
     }),

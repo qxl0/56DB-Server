@@ -21,11 +21,15 @@ export class ItemResolver {
   }
 
   @Query(()=> [Item])
-  queryitems(
+  async queryitems(
     @Arg('desc', () => String) desc: string,
     @Ctx() { em }: MyContext
   ): Promise<Item[]> {
-    return  em.find(Item, {Description: desc}); 
+    // return  em.find(Item, {Description: desc}); 
+    const items = await em.createQueryBuilder(Item, 'item')
+      .where('item.Description like :desc', {desc: `${desc}%`})
+      .getMany();
+    return items;
   }
 
   @Mutation(()=> Item)
