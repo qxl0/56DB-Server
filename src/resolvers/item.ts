@@ -1,6 +1,14 @@
-import { Arg, Ctx, Int, Mutation, Query, Resolver } from 'type-graphql';
+import { Arg, Ctx, Int, Mutation, Query, Resolver, ObjectType, Field } from 'type-graphql';
 import { Item } from '../entity/Item';
 import { MyContext } from '../types';
+
+@ObjectType()
+class PaginatedItems{
+    @Field(() => [Item])
+    items: Item[]
+    @Field()
+    hasMore: boolean
+}
 
 @Resolver()
 export class ItemResolver {
@@ -8,8 +16,29 @@ export class ItemResolver {
   items(
     @Ctx() { em }: MyContext
   ): Promise<Item[]> {
-    return  em.find(Item, {}); 
+    return  em.find(Item, {Price: 40}); 
   }
+
+  @Query(()=> PaginatedItems)
+  async itemsPaginated(
+    @Arg("limit", () => Int) limit: number,
+    @Arg("cursor", () => String, {nullable: true}) cursor: string | null,
+    @Ctx() { em }: MyContext
+  ): Promise<PaginatedItems> {
+    const realLimit = Math.min(50, limit);
+    const realLimitPlusOne = realLimit + 1;
+    const qb = em.createQueryBuilder(Item, 'item')
+      .take(realLimitPlusOne);
+    if (cursor) {
+      qb.where('item.id < :cursor', {cursor: cursor});
+      qb.orderBy('item.id', 'ASC');
+    };
+    const items = await qb.getMany();
+
+    return {items: items.slice(0, realLimit), 
+      hasMore: items.length === realLimitPlusOne};
+  }
+
 
   @Query(()=> Item, {nullable: true})
   item(
